@@ -20,6 +20,8 @@ GRID_COLOR = (179, 116, 9)
 PLAYER_X_COLOR = PLAYER_O_COLOR = random.choice([(0, 0, 0), (255, 255, 255)])
 PLAYER_X = "X"
 PLAYER_O = "O"
+TIME_LIMIT = 20
+PLUS_TIME = 3
 
 # Initialize Pygame
 pygame.init()
@@ -30,6 +32,8 @@ pygame.display.set_caption("Blind Omok")
 board = [["." for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
 current_player = PLAYER_X
 winner = None
+player_x_time = TIME_LIMIT * 1000  # Convert to milliseconds
+player_o_time = (TIME_LIMIT - PLUS_TIME) * 1000
 
 # Function to draw the game board
 def draw_board():
@@ -64,6 +68,11 @@ def draw_board():
         pygame.display.update()
         return restart_button
     else:
+        font = pygame.font.Font(None, 36)
+        player_x_time_text = font.render(f"Player X: {player_x_time // 1000} s", True, PLAYER_X_COLOR)
+        player_o_time_text = font.render(f"Player O: {player_o_time // 1000} s", True, PLAYER_O_COLOR)
+        screen.blit(player_x_time_text, (10, 10))
+        screen.blit(player_o_time_text, (10, 40))
         pygame.display.update()
         return None
 
@@ -91,6 +100,7 @@ def check_win(x, y):
 # Main game loop
 restart = False
 running = True
+last_time = pygame.time.get_ticks()
 while running:
     draw_board()
     if restart:
@@ -98,6 +108,22 @@ while running:
         current_player = PLAYER_X
         winner = None
         restart = False
+        player_o_time = (TIME_LIMIT-PLUS_TIME) * 1000
+        player_x_time = TIME_LIMIT * 1000
+        
+    if not winner:
+        if current_player == PLAYER_X:
+            player_x_time -= pygame.time.get_ticks() - last_time
+            if player_x_time <= 0:
+                player_x_time = 0
+                winner = PLAYER_O
+        else:
+            player_o_time -= pygame.time.get_ticks() - last_time
+            if player_o_time <= 0:
+                player_o_time = 0
+                winner = PLAYER_X
+
+    last_time = pygame.time.get_ticks()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -106,6 +132,10 @@ while running:
             x, y = event.pos[0] // GRID_SIZE, event.pos[1] // GRID_SIZE
             if 0 <= x < GRID_WIDTH and 0 <= y < GRID_HEIGHT and board[y][x] == ".":
                 board[y][x] = current_player
+                if current_player == PLAYER_X:
+                    player_o_time += PLUS_TIME * 1000
+                else:
+                    player_x_time += PLUS_TIME * 1000
                 if check_win(x, y):
                     winner = current_player
                 else:
